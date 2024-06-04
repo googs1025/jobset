@@ -66,6 +66,9 @@ func (p *podWebhook) Default(ctx context.Context, obj runtime.Object) error {
 	if !ok {
 		return nil
 	}
+	if err := addJobSetIndex(pod); err != nil {
+		fmt.Printf("pod webhook: setting exclusive affinities for pod: %s", pod.Name)
+	}
 	// If this pod is part of a JobSet that is NOT using the exclusive placement feature,
 	// or if this jobset is using the node selector exclusive placement strategy (running
 	// the hack/label_nodes.py script beforehand), we don't need to mutate the pod here.
@@ -90,6 +93,7 @@ func (p *podWebhook) patchPod(ctx context.Context, pod *corev1.Pod) error {
 		log.V(3).Info(fmt.Sprintf("pod webhook: adding node selector for follower pod: %s", pod.Name))
 		return p.setNodeSelector(ctx, pod)
 	}
+	return nil
 }
 
 func setExclusiveAffinities(pod *corev1.Pod) {
@@ -191,4 +195,35 @@ func (p *podWebhook) topologyFromPod(ctx context.Context, pod *corev1.Pod, topol
 		return "", fmt.Errorf("node does not have topology label: %s", topology)
 	}
 	return topology, nil
+}
+
+func addEnvVarIfNotExists(c *corev1.Container, e corev1.EnvVar) {
+	for _, env := range c.Env {
+		if env.Name == e.Name {
+			return
+		}
+	}
+	c.Env = append([]corev1.EnvVar{e}, c.Env...)
+}
+
+// addJobSetIndex adds the jobset index label to the container.
+func addJobSetIndex(pod *corev1.Pod) error {
+	index, found := pod.Labels[jobset.JobIndexKey]
+	if !found {
+		return fmt.Errorf("failure inject variables, no index label found for pod %v", pod.Name)
+	}
+
+	jobSetIndexEnvVar := corev1.EnvVar{
+		Name:  jobset.JobSetIndex,
+		Value: index,
+	}
+
+	for i := range pod.Spec.Containers {
+		addEnvVarIfNotExists(&pod.Spec.Containers[i], jobSetIndexEnvVar)
+	}
+	for i := range pod.Spec.InitContainers {
+		addEnvVarIfNotExists(&pod.Spec.InitContainers[i], jobSetIndexEnvVar)
+	}
+	fmt.Printf("pod webhook: add container env successful: %s", pod.Name)
+	return nil
 }

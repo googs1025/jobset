@@ -44,6 +44,8 @@ const (
 	// JobSetControllerName is the reserved value for the managedBy field for the built-in
 	// JobSet controller.
 	JobSetControllerName = "jobset.sigs.k8s.io/jobset-controller"
+
+	JobSetIndex = "JOBSET_INDEX"
 )
 
 type JobSetConditionType string
