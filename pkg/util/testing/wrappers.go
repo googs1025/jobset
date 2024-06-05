@@ -115,6 +115,29 @@ func (j *JobSetWrapper) ReplicatedJob(job jobset.ReplicatedJob) *JobSetWrapper {
 	return j
 }
 
+// ReplicatedJobsStatus adds ReplicatedJobsStatus to the JobSet.
+func (j *JobSetWrapper) ReplicatedJobsStatus(replicatedJobStatus ...jobset.ReplicatedJobStatus) *JobSetWrapper {
+	j.JobSet.Status.ReplicatedJobsStatus = replicatedJobStatus
+	return j
+}
+
+// WithReplicatedJobStatus adds single ReplicatedJobStatus to the JobSet.
+func WithReplicatedJobStatus(name string, active, failed, succeeded, suspended int32) jobset.ReplicatedJobStatus {
+	return jobset.ReplicatedJobStatus{
+		Name:      name,
+		Active:    active,
+		Failed:    failed,
+		Succeeded: succeeded,
+		Suspended: suspended,
+	}
+}
+
+// SetStatus adds Status to the JobSet.
+func (j *JobSetWrapper) SetStatus(status string) *JobSetWrapper {
+	j.JobSet.Status.Status = status
+	return j
+}
+
 // Suspend adds a suspend flag to JobSet
 func (j *JobSetWrapper) Suspend(suspend bool) *JobSetWrapper {
 	j.JobSet.Spec.Suspend = ptr.To(suspend)

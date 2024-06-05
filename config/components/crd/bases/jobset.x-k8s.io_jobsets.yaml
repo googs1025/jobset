@@ -15,6 +15,10 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
+    - description: Status of the JobSet
+      jsonPath: .status.status
+      name: Status
+      type: string
     - description: Number of restarts
       jsonPath: .status.restarts
       name: Restarts
@@ -8547,6 +8551,9 @@ spec:
                   of restarts.
                 format: int32
                 type: integer
+              status:
+                description: Status of the JobSet.
+                type: string
             type: object
         type: object
     served: true
