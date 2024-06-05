@@ -36,17 +36,19 @@ class JobsetV1alpha2JobSetStatus(object):
         'conditions': 'list[V1Condition]',
         'replicated_jobs_status': 'list[JobsetV1alpha2ReplicatedJobStatus]',
         'restarts': 'int',
-        'restarts_count_towards_max': 'int'
+        'restarts_count_towards_max': 'int',
+        'status': 'str'
     }
 
     attribute_map = {
         'conditions': 'conditions',
         'replicated_jobs_status': 'replicatedJobsStatus',
         'restarts': 'restarts',
-        'restarts_count_towards_max': 'restartsCountTowardsMax'
+        'restarts_count_towards_max': 'restartsCountTowardsMax',
+        'status': 'status'
     }
 
-    def __init__(self, conditions=None, replicated_jobs_status=None, restarts=None, restarts_count_towards_max=None, local_vars_configuration=None):  # noqa: E501
+    def __init__(self, conditions=None, replicated_jobs_status=None, restarts=None, restarts_count_towards_max=None, status=None, local_vars_configuration=None):  # noqa: E501
         """JobsetV1alpha2JobSetStatus - a model defined in OpenAPI"""  # noqa: E501
         if local_vars_configuration is None:
             local_vars_configuration = Configuration()
@@ -56,6 +58,7 @@ class JobsetV1alpha2JobSetStatus(object):
         self._replicated_jobs_status = None
         self._restarts = None
         self._restarts_count_towards_max = None
+        self._status = None
         self.discriminator = None
 
         if conditions is not None:
@@ -66,6 +69,8 @@ class JobsetV1alpha2JobSetStatus(object):
             self.restarts = restarts
         if restarts_count_towards_max is not None:
             self.restarts_count_towards_max = restarts_count_towards_max
+        if status is not None:
+            self.status = status
 
     @property
     def conditions(self):
@@ -156,6 +161,29 @@ class JobsetV1alpha2JobSetStatus(object):
         """
 
         self._restarts_count_towards_max = restarts_count_towards_max
+
+    @property
+    def status(self):
+        """Gets the status of this JobsetV1alpha2JobSetStatus.  # noqa: E501
+
+        Status of the JobSet.  # noqa: E501
+
+        :return: The status of this JobsetV1alpha2JobSetStatus.  # noqa: E501
+        :rtype: str
+        """
+        return self._status
+
+    @status.setter
+    def status(self, status):
+        """Sets the status of this JobsetV1alpha2JobSetStatus.
+
+        Status of the JobSet.  # noqa: E501
+
+        :param status: The status of this JobsetV1alpha2JobSetStatus.  # noqa: E501
+        :type: str
+        """
+
+        self._status = status
 
     def to_dict(self):
         """Returns the model properties as a dict"""

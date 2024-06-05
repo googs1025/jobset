@@ -62,6 +62,24 @@ const (
 	JobSetStartupPolicyCompleted JobSetConditionType = "StartupPolicyCompleted"
 )
 
+// the status of JobSet
+const (
+	// Succeed means the JobSet execution is successful.
+	// all the jobs in the JobSet are successful.
+	Succeed = "Succeed"
+	// Failed means the JobSet execution is failed.
+	// at least one of the jobs in the JobSet is failed.
+	Failed = "Failed"
+	// Running means the JobSet execution is running.
+	// at least one of the jobs in the JobSet is running.
+	Running = "Running"
+	// Pending means the JobSet execution is pending.
+	Pending = "Pending"
+	// Suspended means the JobSet execution is suspended.
+	// at least one of the jobs in the JobSet is suspended.
+	Suspended = "Suspended"
+)
+
 // JobSetSpec defines the desired state of JobSet
 type JobSetSpec struct {
 	// ReplicatedJobs is the group of jobs that will form the set.
@@ -134,6 +152,8 @@ type JobSetStatus struct {
 	// RestartsCountTowardsMax tracks the number of times the JobSet has restarted that counts towards the maximum allowed number of restarts.
 	RestartsCountTowardsMax int32 `json:"restartsCountTowardsMax,omitempty"`
 
+	// Status of the JobSet.
+	Status string `json:"status,omitempty"`
 	// ReplicatedJobsStatus track the number of JobsReady for each replicatedJob.
 	// +optional
 	// +listType=map

@@ -150,6 +150,7 @@ func (r *JobSetReconciler) reconcile(ctx context.Context, js *jobset.JobSet, upd
 	// Calculate JobsReady and update statuses for each ReplicatedJob.
 	rjobStatuses := r.calculateReplicatedJobStatuses(ctx, js, ownedJobs)
 	updateReplicatedJobsStatuses(ctx, js, rjobStatuses, updateStatusOpts)
+	updateJobSetStatus(ctx, js, updateStatusOpts)
 
 	// If JobSet is already completed or failed, clean up active child jobs and requeue if TTLSecondsAfterFinished is set.
 	if jobSetFinished(js) {
@@ -312,6 +313,49 @@ func updateReplicatedJobsStatuses(ctx context.Context, js *jobset.JobSet, status
 	// Add a new status update to perform at the end of the reconciliation attempt.
 	js.Status.ReplicatedJobsStatus = statuses
 	updateStatusOpts.shouldUpdate = true
+}
+
+func updateJobSetStatus(ctx context.Context, js *jobset.JobSet, updateStatusOpts *statusUpdateOpts) {
+	var runningJobs int32
+	var failedJobs int32
+	var completedJobs int32
+	var suspendedJobs int32
+	// Count the number of active, failed, completed, and suspended jobs.
+	for _, replicatedJobStatus := range js.Status.ReplicatedJobsStatus {
+		runningJobs += replicatedJobStatus.Active
+		failedJobs += replicatedJobStatus.Failed
+		completedJobs += replicatedJobStatus.Succeeded
+		suspendedJobs += replicatedJobStatus.Suspended
+	}
+
+	status := jobset.Pending
+	// If all jobs are completed, the status is "successful".
+	// If one job are failed, the status is "failed".
+	// If one job is suspended, the status is "suspended".
+	// Otherwise, the status is "running".
+	if failedJobs > 0 {
+		status = jobset.Failed
+	} else if suspendedJobs > 0 {
+		status = jobset.Suspended
+	} else if completedJobs == getTotalReplicas(js) {
+		status = jobset.Succeed
+	} else if runningJobs > 0 {
+		status = jobset.Running
+	}
+	// Update the status if it has changed.
+	if js.Status.Status != status {
+		js.Status.Status = status
+		updateStatusOpts.shouldUpdate = true
+	}
+
+}
+
+func getTotalReplicas(js *jobset.JobSet) int32 {
+	var total int32
+	for _, replicatedJob := range js.Spec.ReplicatedJobs {
+		total += replicatedJob.Replicas
+	}
+	return total
 }
 
 // calculateReplicatedJobStatuses uses the JobSet's child jobs to update the statuses

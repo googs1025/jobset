@@ -200,6 +200,10 @@
           "description": "RestartsCountTowardsMax tracks the number of times the JobSet has restarted that counts towards the maximum allowed number of restarts.",
           "type": "integer",
           "format": "int32"
+        },
+        "status": {
+          "description": "Status of the JobSet.",
+          "type": "string"
         }
       }
     },
