@@ -15,9 +15,9 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
-    - description: Status of the JobSet
-      jsonPath: .status.status
-      name: Status
+    - description: Phase of the JobSet
+      jsonPath: .status.phase
+      name: Phase
       type: string
     - description: Number of restarts
       jsonPath: .status.restarts

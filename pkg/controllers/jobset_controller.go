@@ -150,8 +150,6 @@ func (r *JobSetReconciler) reconcile(ctx context.Context, js *jobset.JobSet, upd
 	// Calculate JobsReady and update statuses for each ReplicatedJob.
 	rjobStatuses := r.calculateReplicatedJobStatuses(ctx, js, ownedJobs)
 	updateReplicatedJobsStatuses(ctx, js, rjobStatuses, updateStatusOpts)
-	// Calculate JobSet status.
-	updateJobSetStatus(ctx, js, updateStatusOpts)
 
 	// If JobSet is already completed or failed, clean up active child jobs and requeue if TTLSecondsAfterFinished is set.
 	if jobSetFinished(js) {
@@ -314,48 +312,6 @@ func updateReplicatedJobsStatuses(ctx context.Context, js *jobset.JobSet, status
 	// Add a new status update to perform at the end of the reconciliation attempt.
 	js.Status.ReplicatedJobsStatus = statuses
 	updateStatusOpts.shouldUpdate = true
-}
-
-func updateJobSetStatus(_ context.Context, js *jobset.JobSet, updateStatusOpts *statusUpdateOpts) {
-	var runningJobs int32
-	var failedJobs int32
-	var completedJobs int32
-	var suspendedJobs int32
-	// Count the number of active, failed, completed, and suspended jobs.
-	for _, replicatedJobStatus := range js.Status.ReplicatedJobsStatus {
-		runningJobs += replicatedJobStatus.Active
-		failedJobs += replicatedJobStatus.Failed
-		completedJobs += replicatedJobStatus.Succeeded
-		suspendedJobs += replicatedJobStatus.Suspended
-	}
-
-	status := jobset.Pending
-	// If all jobs are completed, the status is "successful".
-	// If one job are failed, the status is "failed".
-	// If one job is suspended, the status is "suspended".
-	// Otherwise, the status is "running".
-	if failedJobs > 0 {
-		status = jobset.Failed
-	} else if suspendedJobs > 0 {
-		status = jobset.Suspended
-	} else if completedJobs == getTotalReplicas(js) {
-		status = jobset.Succeed
-	} else if runningJobs > 0 {
-		status = jobset.Running
-	}
-	// Update the status if it has changed.
-	if js.Status.Status != status {
-		js.Status.Status = status
-		updateStatusOpts.shouldUpdate = true
-	}
-}
-
-func getTotalReplicas(js *jobset.JobSet) int32 {
-	var total int32
-	for _, replicatedJob := range js.Spec.ReplicatedJobs {
-		total += replicatedJob.Replicas
-	}
-	return total
 }
 
 // calculateReplicatedJobStatuses uses the JobSet's child jobs to update the statuses
@@ -674,7 +630,7 @@ func (r *JobSetReconciler) createHeadlessSvcIfNecessary(ctx context.Context, js 
 // executeSuccessPolicy checks the completed jobs against the jobset success policy
 // and updates the jobset status to completed if the success policy conditions are met.
 // Returns a boolean value indicating if the jobset was completed or not.
-func executeSuccessPolicy(ctx context.Context, js *jobset.JobSet, ownedJobs *childJobs, updateStatusOpts *statusUpdateOpts) bool {
+func executeSuccessPolicy(_ context.Context, js *jobset.JobSet, ownedJobs *childJobs, updateStatusOpts *statusUpdateOpts) bool {
 	if numJobsMatchingSuccessPolicy(js, ownedJobs.successful) >= numJobsExpectedToSucceed(js) {
 		setJobSetCompletedCondition(js, updateStatusOpts)
 		return true
@@ -911,14 +867,15 @@ func enqueueEvent(updateStatusOpts *statusUpdateOpts, event *eventParams) {
 // function parameters for setCondition
 type conditionOpts struct {
 	eventType string
+	phase     string
 	condition *metav1.Condition
 }
 
-// setCondition will add a new condition to the JobSet status (or update an existing one),
+// setCondition will add a new condition and phase to the JobSet status (or update an existing one),
 // and enqueue an event for emission if the status update succeeds at the end of the reconcile.
 func setCondition(js *jobset.JobSet, condOpts *conditionOpts, updateStatusOpts *statusUpdateOpts) {
-	// Return early if no status update is required for this condition.
-	if !updateCondition(js, condOpts) {
+	// Return early if no status update is required for this condition and phase.
+	if !updateConditionAndPhase(js, condOpts) {
 		return
 	}
 
@@ -941,12 +898,12 @@ func setCondition(js *jobset.JobSet, condOpts *conditionOpts, updateStatusOpts *
 	enqueueEvent(updateStatusOpts, event)
 }
 
-// updateCondition accepts a given condition and does one of the following:
+// updateConditionAndPhase accepts a given condition and does one of the following:
 //  1. If an identical condition already exists, do nothing and return false (indicating
 //     no change was made).
 //  2. If a condition of the same type exists but with a different status, update
 //     the condition in place and return true (indicating a condition change was made).
-func updateCondition(js *jobset.JobSet, opts *conditionOpts) bool {
+func updateConditionAndPhase(js *jobset.JobSet, opts *conditionOpts) bool {
 	if opts == nil || opts.condition == nil {
 		return false
 	}
@@ -985,6 +942,13 @@ func updateCondition(js *jobset.JobSet, opts *conditionOpts) bool {
 		js.Status.Conditions = append(js.Status.Conditions, newCond)
 		shouldUpdate = true
 	}
+
+	// Update the JobSet phase if necessary.
+	if opts.phase != "" && js.Status.Phase != opts.phase {
+		js.Status.Phase = opts.phase
+		shouldUpdate = true
+	}
+
 	return shouldUpdate
 }
 
@@ -1014,6 +978,7 @@ func makeCompletedConditionsOpts() *conditionOpts {
 			Reason:  constants.AllJobsCompletedReason,
 			Message: constants.AllJobsCompletedMessage,
 		},
+		phase: string(jobset.JobSetCompleted),
 	}
 }
 
@@ -1028,6 +993,7 @@ func makeSuspendedConditionOpts() *conditionOpts {
 			Reason:             constants.JobSetSuspendedReason,
 			Message:            constants.JobSetSuspendedMessage,
 		},
+		phase: string(jobset.JobSetSuspended),
 	}
 }
 
@@ -1042,6 +1008,7 @@ func makeResumedConditionOpts() *conditionOpts {
 			Reason:             constants.JobSetResumedReason,
 			Message:            constants.JobSetResumedMessage,
 		},
+		phase: string(jobset.JobSetRunning),
 	}
 }
 

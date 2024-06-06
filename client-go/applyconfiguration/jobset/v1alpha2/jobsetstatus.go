@@ -24,7 +24,7 @@ type JobSetStatusApplyConfiguration struct {
 	Conditions              []v1.Condition                          `json:"conditions,omitempty"`
 	Restarts                *int32                                  `json:"restarts,omitempty"`
 	RestartsCountTowardsMax *int32                                  `json:"restartsCountTowardsMax,omitempty"`
-	Status                  *string                                 `json:"status,omitempty"`
+	Phase                   *string                                 `json:"phase,omitempty"`
 	ReplicatedJobsStatus    []ReplicatedJobStatusApplyConfiguration `json:"replicatedJobsStatus,omitempty"`
 }
 
@@ -60,11 +60,11 @@ func (b *JobSetStatusApplyConfiguration) WithRestartsCountTowardsMax(value int32
 	return b
 }
 
-// WithStatus sets the Status field in the declarative configuration to the given value
+// WithPhase sets the Phase field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the Status field is set to the value of the last call.
-func (b *JobSetStatusApplyConfiguration) WithStatus(value string) *JobSetStatusApplyConfiguration {
-	b.Status = &value
+// If called multiple times, the Phase field is set to the value of the last call.
+func (b *JobSetStatusApplyConfiguration) WithPhase(value string) *JobSetStatusApplyConfiguration {
+	b.Phase = &value
 	return b
 }
 

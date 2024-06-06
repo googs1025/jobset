@@ -736,7 +736,7 @@ func TestUpdateConditions(t *testing.T) {
 				ReplicatedJob(testutils.MakeReplicatedJob(replicatedJobName).
 					Job(testutils.MakeJobTemplate(jobName, ns).Obj()).
 					Replicas(1).
-					Obj()).
+					Obj()).Phase(string(jobset.JobSetCompleted)).
 				Conditions([]metav1.Condition{
 					// JobSet is completed..
 					{
@@ -752,7 +752,7 @@ func TestUpdateConditions(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			gotUpdate := updateCondition(tc.js, tc.opts)
+			gotUpdate := updateConditionAndPhase(tc.js, tc.opts)
 			if gotUpdate != tc.expectedUpdate {
 				t.Errorf("updateCondition return mismatch (want: %v, got %v)", tc.expectedUpdate, gotUpdate)
 			}
@@ -1346,127 +1346,5 @@ func TestCreateHeadlessSvcIfNecessary(t *testing.T) {
 				t.Errorf("expected 1 service to be created, got %d created services", servicesCreated)
 			}
 		})
-	}
-}
-
-func TestUpdateJobSetStatus(t *testing.T) {
-	var (
-		jobSetName = "test-jobset"
-		ns         = "default"
-	)
-
-	tests := []struct {
-		name               string
-		jobset             *jobset.JobSet
-		statusUpdateOpts   *statusUpdateOpts
-		expectJobSetStatus string
-		expectUpdate       bool
-	}{
-		{
-			name: "jobset status is running",
-			jobset: testutils.MakeJobSet(jobSetName, ns).
-				ReplicatedJob(testutils.MakeReplicatedJob("replicated-job-1").
-					Job(testutils.MakeJobTemplate("test-job", ns).Obj()).
-					Replicas(1).Obj()).
-				ReplicatedJob(testutils.MakeReplicatedJob("replicated-job-2").
-					Job(testutils.MakeJobTemplate("test-job", ns).Obj()).
-					Replicas(1).Obj()).
-				ReplicatedJobsStatus(
-					testutils.WithReplicatedJobStatus("replicated-job-1", 1, 0, 0, 0),
-					testutils.WithReplicatedJobStatus("replicated-job-2", 1, 0, 0, 0),
-				).Obj(),
-			statusUpdateOpts: &statusUpdateOpts{
-				shouldUpdate: true,
-			},
-			expectJobSetStatus: jobset.Running,
-			expectUpdate:       true,
-		},
-		{
-			name: "jobset status is failed",
-			jobset: testutils.MakeJobSet(jobSetName, ns).
-				ReplicatedJob(testutils.MakeReplicatedJob("replicated-job-1").
-					Job(testutils.MakeJobTemplate("test-job", ns).Obj()).
-					Replicas(1).Obj()).
-				ReplicatedJob(testutils.MakeReplicatedJob("replicated-job-2").
-					Job(testutils.MakeJobTemplate("test-job", ns).Obj()).
-					Replicas(1).Obj()).
-				ReplicatedJobsStatus(
-					testutils.WithReplicatedJobStatus("replicated-job-1", 0, 1, 0, 0),
-					testutils.WithReplicatedJobStatus("replicated-job-2", 1, 0, 0, 0),
-				).Obj(),
-			statusUpdateOpts: &statusUpdateOpts{
-				shouldUpdate: true,
-			},
-			expectJobSetStatus: jobset.Failed,
-			expectUpdate:       true,
-		},
-		{
-			name: "jobset status is successful",
-			jobset: testutils.MakeJobSet(jobSetName, ns).
-				ReplicatedJob(testutils.MakeReplicatedJob("replicated-job-1").
-					Job(testutils.MakeJobTemplate("test-job", ns).Obj()).
-					Replicas(1).Obj()).
-				ReplicatedJob(testutils.MakeReplicatedJob("replicated-job-2").
-					Job(testutils.MakeJobTemplate("test-job", ns).Obj()).
-					Replicas(1).Obj()).
-				ReplicatedJobsStatus(
-					testutils.WithReplicatedJobStatus("replicated-job-1", 0, 0, 1, 0),
-					testutils.WithReplicatedJobStatus("replicated-job-2", 0, 0, 1, 0),
-				).Obj(),
-			statusUpdateOpts: &statusUpdateOpts{
-				shouldUpdate: true,
-			},
-			expectJobSetStatus: jobset.Succeed,
-			expectUpdate:       true,
-		},
-		{
-			name: "jobset status is suspended",
-			jobset: testutils.MakeJobSet(jobSetName, ns).
-				ReplicatedJob(testutils.MakeReplicatedJob("replicated-job-1").
-					Job(testutils.MakeJobTemplate("test-job", ns).Obj()).
-					Replicas(1).Obj()).
-				ReplicatedJob(testutils.MakeReplicatedJob("replicated-job-2").
-					Job(testutils.MakeJobTemplate("test-job", ns).Obj()).
-					Replicas(1).Obj()).
-				ReplicatedJobsStatus(
-					testutils.WithReplicatedJobStatus("replicated-job-1", 0, 0, 1, 0),
-					testutils.WithReplicatedJobStatus("replicated-job-2", 0, 0, 0, 1),
-				).Obj(),
-			statusUpdateOpts: &statusUpdateOpts{
-				shouldUpdate: true,
-			},
-			expectJobSetStatus: jobset.Suspended,
-			expectUpdate:       true,
-		},
-		{
-			name: "jobset status is pending",
-			jobset: testutils.MakeJobSet(jobSetName, ns).
-				ReplicatedJob(testutils.MakeReplicatedJob("replicated-job-1").
-					Job(testutils.MakeJobTemplate("test-job", ns).Obj()).
-					Replicas(1).Obj()).
-				ReplicatedJob(testutils.MakeReplicatedJob("replicated-job-2").
-					Job(testutils.MakeJobTemplate("test-job", ns).Obj()).
-					Replicas(1).Obj()).
-				ReplicatedJobsStatus(
-					testutils.WithReplicatedJobStatus("replicated-job-1", 0, 0, 0, 0),
-					testutils.WithReplicatedJobStatus("replicated-job-2", 0, 0, 0, 0),
-				).Obj(),
-			statusUpdateOpts: &statusUpdateOpts{
-				shouldUpdate: true,
-			},
-			expectJobSetStatus: jobset.Pending,
-			expectUpdate:       true,
-		},
-	}
-
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			updateJobSetStatus(context.TODO(), tc.jobset, tc.statusUpdateOpts)
-			if tc.jobset.Status.Status != tc.expectJobSetStatus {
-				t.Errorf("updateJobSetStatus failed expected jobset status is %s, got %s",
-					tc.expectJobSetStatus, tc.jobset.Status.Status)
-			}
-		})
-
 	}
 }

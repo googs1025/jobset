@@ -250,12 +250,13 @@ func makeFailedConditionOpts(reason, msg string) *conditionOpts {
 			Reason:  reason,
 			Message: msg,
 		},
+		phase:     string(jobset.JobSetFailed),
 		eventType: corev1.EventTypeWarning,
 	}
 }
 
 // setJobSetFailedCondition sets a condition on the JobSet status indicating it has failed.
-func setJobSetFailedCondition(ctx context.Context, js *jobset.JobSet, reason, msg string, updateStatusOpts *statusUpdateOpts) {
+func setJobSetFailedCondition(_ context.Context, js *jobset.JobSet, reason, msg string, updateStatusOpts *statusUpdateOpts) {
 	setCondition(js, makeFailedConditionOpts(reason, msg), updateStatusOpts)
 }
 

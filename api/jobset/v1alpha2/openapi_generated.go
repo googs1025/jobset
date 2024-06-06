@@ -358,9 +358,9 @@ func schema_jobset_api_jobset_v1alpha2_JobSetStatus(ref common.ReferenceCallback
 							Format:      "int32",
 						},
 					},
-					"status": {
+					"phase": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Status of the JobSet.",
+							Description: "Phase of the JobSet.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
