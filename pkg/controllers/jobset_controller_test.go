@@ -696,7 +696,7 @@ func TestUpdateConditions(t *testing.T) {
 				ReplicatedJob(testutils.MakeReplicatedJob(replicatedJobName).
 					Job(testutils.MakeJobTemplate(jobName, ns).Obj()).
 					Replicas(1).
-					Obj()).Phase(jobset.JobSetRunning).Obj(),
+					Obj()).Obj(),
 			opts:           makeCompletedConditionsOpts(),
 			expectedUpdate: true,
 		},
@@ -706,7 +706,7 @@ func TestUpdateConditions(t *testing.T) {
 				ReplicatedJob(testutils.MakeReplicatedJob(replicatedJobName).
 					Job(testutils.MakeJobTemplate(jobName, ns).Obj()).
 					Replicas(1).
-					Obj()).Phase(jobset.JobSetRunning).Obj(),
+					Obj()).Obj(),
 			opts:           makeSuspendedConditionOpts(),
 			expectedUpdate: true,
 		},
@@ -716,7 +716,7 @@ func TestUpdateConditions(t *testing.T) {
 				ReplicatedJob(testutils.MakeReplicatedJob(replicatedJobName).
 					Job(testutils.MakeJobTemplate(jobName, ns).Obj()).
 					Replicas(1).
-					Obj()).Phase(jobset.JobSetRunning).
+					Obj()).
 				Conditions([]metav1.Condition{
 					// JobSet is currrently suspended.
 					{
@@ -736,7 +736,7 @@ func TestUpdateConditions(t *testing.T) {
 				ReplicatedJob(testutils.MakeReplicatedJob(replicatedJobName).
 					Job(testutils.MakeJobTemplate(jobName, ns).Obj()).
 					Replicas(1).
-					Obj()).Phase(jobset.JobSetCompleted).
+					Obj()).TerminalState(jobset.JobSetCompleted).
 				Conditions([]metav1.Condition{
 					// JobSet is completed..
 					{

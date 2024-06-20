@@ -866,12 +866,12 @@ func enqueueEvent(updateStatusOpts *statusUpdateOpts, event *eventParams) {
 
 // function parameters for setCondition
 type conditionOpts struct {
-	eventType string
-	phase     string
-	condition *metav1.Condition
+	eventType     string
+	terminalState string
+	condition     *metav1.Condition
 }
 
-// setCondition will add a new condition and phase to the JobSet status (or update an existing one),
+// setCondition will add a new condition and terminalState to the JobSet status (or update an existing one),
 // and enqueue an event for emission if the status update succeeds at the end of the reconcile.
 func setCondition(js *jobset.JobSet, condOpts *conditionOpts, updateStatusOpts *statusUpdateOpts) {
 	// Return early if no status update is required for this condition and phase.
@@ -945,9 +945,9 @@ func updateConditionAndPhase(js *jobset.JobSet, opts *conditionOpts) bool {
 		shouldUpdate = true
 	}
 
-	// Update the JobSet Status Phase if necessary.
-	if opts.phase != "" && js.Status.Phase != opts.phase {
-		js.Status.Phase = opts.phase
+	// If the jobset is in a terminal state, set the terminal state on the jobset.
+	if opts.terminalState != "" && js.Status.TerminalState != opts.terminalState {
+		js.Status.TerminalState = opts.terminalState
 		shouldUpdate = true
 	}
 
@@ -980,7 +980,7 @@ func makeCompletedConditionsOpts() *conditionOpts {
 			Reason:  constants.AllJobsCompletedReason,
 			Message: constants.AllJobsCompletedMessage,
 		},
-		phase: string(jobset.JobSetCompleted),
+		terminalState: string(jobset.JobSetCompleted),
 	}
 }
 
@@ -995,7 +995,6 @@ func makeSuspendedConditionOpts() *conditionOpts {
 			Reason:             constants.JobSetSuspendedReason,
 			Message:            constants.JobSetSuspendedMessage,
 		},
-		phase: string(jobset.JobSetSuspended),
 	}
 }
 
@@ -1010,7 +1009,6 @@ func makeResumedConditionOpts() *conditionOpts {
 			Reason:             constants.JobSetResumedReason,
 			Message:            constants.JobSetResumedMessage,
 		},
-		phase: string(jobset.JobSetRunning),
 	}
 }
 
