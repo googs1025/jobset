@@ -97,6 +97,7 @@ func NewJobSetReconciler(client client.Client, scheme *runtime.Scheme, record re
 //+kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=batch,resources=jobs/status,verbs=get;patch;update
 //+kubebuilder:rbac:groups=core,resources=services,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=autoscaling,resources=horizontalpodautoscalers,verbs=get;list;watch;create;update;patch;delete
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -140,6 +141,13 @@ func (r *JobSetReconciler) reconcile(ctx context.Context, js *jobset.JobSet, upd
 	}
 
 	log.V(2).Info("Reconciling JobSet")
+
+	// Reconcile the HPA
+	err := r.reconcileHPA(ctx, js)
+	if err != nil {
+		log.Error(err, "Reconcile PyTorchJob HPA error")
+		return ctrl.Result{}, err
+	}
 
 	// Get Jobs owned by JobSet.
 	ownedJobs, err := r.getChildJobs(ctx, js)

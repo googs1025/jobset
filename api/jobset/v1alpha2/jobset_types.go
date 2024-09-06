@@ -15,6 +15,7 @@ limitations under the License.
 package v1alpha2
 
 import (
+	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	batchv1 "k8s.io/api/batch/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -102,6 +103,10 @@ type JobSetSpec struct {
 	// StartupPolicy, if set, configures in what order jobs must be started
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="Value is immutable"
 	StartupPolicy *StartupPolicy `json:"startupPolicy,omitempty"`
+
+	// ScalePolicy if set, configures how to scale the JobSet.
+	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="Value is immutable"
+	ScalePolicy *ScalePolicy `json:"scalePolicy,omitempty"`
 
 	// Suspend suspends all running child Jobs when set to true.
 	Suspend *bool `json:"suspend,omitempty"`
@@ -192,6 +197,7 @@ type ReplicatedJobStatus struct {
 // +k8s:openapi-gen=true
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
+// +kubebuilder:subresource:scale:specpath=.spec.replicatedJobs[*].replicas,statuspath=.status.replicatedJobsStatus[*].active,selectorpath=
 // +kubebuilder:printcolumn:name="TerminalState",JSONPath=".status.terminalState",type=string,description="Final state of JobSet"
 // +kubebuilder:printcolumn:name="Restarts",JSONPath=".status.restarts",type=string,description="Number of restarts"
 // +kubebuilder:printcolumn:name="Completed",type="string",priority=0,JSONPath=".status.conditions[?(@.type==\"Completed\")].status"
@@ -340,6 +346,31 @@ type StartupPolicy struct {
 	// when all the jobs of the previous one are ready.
 	// +kubebuilder:validation:Enum=AnyOrder;InOrder
 	StartupPolicyOrder StartupPolicyOptions `json:"startupPolicyOrder"`
+}
+
+type ScalePolicy struct {
+	// minReplicas is the lower limit for the number of replicas to which the training job
+	// can scale down.  It defaults to null.
+	// +optional
+	MinReplicas *int32 `json:"minReplicas,omitempty"`
+	// upper limit for the number of pods that can be set by the autoscaler; cannot be smaller than MinReplicas, defaults to null.
+	// +optional
+	MaxReplicas *int32 `json:"maxReplicas,omitempty"`
+
+	// MaxRestarts is the limit for restart times of pods in elastic mode.
+	// +optional
+	MaxRestarts *int32 `json:"maxRestarts,omitempty"`
+
+	// Metrics contains the specifications which are used to calculate the
+	// desired replica count (the maximum replica count across all metrics will
+	// be used).  The desired replica count is calculated with multiplying the
+	// ratio between the target value and the current value by the current
+	// number of pods. Ergo, metrics used must decrease as the pod count is
+	// increased, and vice-versa.  See the individual metric source types for
+	// more information about how each type of metric must respond.
+	// If not set, the HPA will not be created.
+	// +optional
+	Metrics []autoscalingv2.MetricSpec `json:"metrics,omitempty"`
 }
 
 // Coordinator defines which pod can be marked as the coordinator for the JobSet workload.
